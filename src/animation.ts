@@ -1,3 +1,4 @@
+import "./animation.less";
 import {PageVisible, PageBeforeVisible, PageHidden} from "./navigation";
 import {PageDuration, PageDurationAvailable} from "./narration";
 
@@ -22,7 +23,7 @@ interface IAnimation { initialrect: string;  finalrect: string; }
 
 class Animation {
     public static setupAnimation(page: HTMLElement, beforeVisible: boolean): void {
-        const animationView = <HTMLElement> ([].slice.call(page.getElementsByClassName("bloom-imageContainer"))
+        const animationView = <HTMLElement> ([].slice.call(page.getElementsByClassName("bloom-imageView"))
             .find(v => (<IAnimation> v.dataset).initialrect));
         if (!animationView) {return; } // no image to animate
         const stylesheet = this.getAnimationStylesheet().sheet;
@@ -30,24 +31,24 @@ class Animation {
 
         //Fetch the data from the dataset and reformat into scale width and height along with offset x and y
         const initialRect = initialRectStr.split(" ");
-        const viewWidth = animationView.getBoundingClientRect().width;
-        const viewHeight = animationView.getBoundingClientRect().height;
-        const initialScaleWidth = 1 / parseFloat(initialRect[2]);
-        const initialScaleHeight = 1 / parseFloat(initialRect[3]);
+        const viewWidth = animationView.parentElement.getBoundingClientRect().width;
+        const viewHeight = animationView.parentElement.getBoundingClientRect().height;
+        const initialScaleWidth = viewWidth / parseFloat(initialRect[2]);
+        const initialScaleHeight = viewHeight / parseFloat(initialRect[3]);
         const finalRect = (<IAnimation> <any> animationView.dataset).finalrect.split(" ");
-        const finalScaleWidth = 1 / parseFloat(finalRect[2]);
-        const finalScaleHeight = 1 / parseFloat(finalRect[3]);
+        const finalScaleWidth = viewWidth / parseFloat(finalRect[2]);
+        const finalScaleHeight = viewHeight / parseFloat(finalRect[3]);
 
-        const initialX = parseFloat(initialRect[0]) * viewWidth;
-        const initialY = parseFloat(initialRect[1]) * viewHeight;
-        const finalX = parseFloat(finalRect[0]) * viewWidth;
-        const finalY = parseFloat(finalRect[1]) * viewHeight;
+        const initialX = parseFloat(initialRect[0]);
+        const initialY = parseFloat(initialRect[1]);
+        const finalX = parseFloat(finalRect[0]);
+        const finalY = parseFloat(finalRect[1]);
 
         //Will take the form of "scale(W, H) translate(Xpx, Ypx)"
         const initialTransform = "scale(" + initialScaleWidth + ", " + initialScaleHeight
-            + ") translate(-" + initialX + "px, -" + initialY + "px)";
+            + ") translate(" + initialX + "px, " + initialY + "px)";
         const finalTransform = "scale(" + finalScaleWidth + ", " + finalScaleHeight
-            + ") translate(-" + finalX + "px, -" + finalY + "px)";
+            + ") translate(" + finalX + "px, " + finalY + "px)";
 
         console.log(initialTransform);
         console.log(finalTransform);
