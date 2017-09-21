@@ -1,26 +1,32 @@
-import {PageVisible, PageBeforeVisible, PageHidden} from "./navigation";
 import LiteEvent from "./event";
-import {Play, Pause, IsPaused} from "./controls";
-
-export function SetupNarration(): void {
-    PageVisible.subscribe(page => {
-        Narration.playAllSentences(page);
-    });
-    PageHidden.subscribe(page => {
-        // Todo: stop playing?
-    });
-    PageBeforeVisible.subscribe(page => {
-        Narration.computeDuration(page);
-    });
-
-    Narration.subscribeEvents();
-}
 
 // This can (and should) be called very early in the setup process, before any of the setup calls that use
 // these events.
 export function SetupNarrationEvents(): void {
     PageDurationAvailable = new LiteEvent<HTMLElement>();
     PageNarrationComplete = new LiteEvent<HTMLElement>();
+}
+
+// Clients ought to be able to import Narration and call these directly, but I can't figure out how.
+export function PlayNarration(): void {
+    Narration.play();
+}
+export function PauseNarration(): void {
+    Narration.pause();
+}
+export function PlayAllSentences(page: HTMLElement): void {
+    Narration.playAllSentences(page);
+}
+export function ComputeDuration(page: HTMLElement): void {
+    Narration.computeDuration(page);
+}
+
+export function PlaybackCompleted(): void {
+    Narration.playEnded();
+}
+
+export function SetAndroidMode(): void {
+    Narration.androidMode = true;
 }
 
 export var PageDuration: number;
@@ -38,39 +44,40 @@ enum Status {
 
 export default class Narration {
 
+    public static androidMode: boolean = false;
+
     public static documentHasNarration(): boolean {
         return !!document.getElementsByClassName("audio-sentence").length;
     }
 
-    public static subscribeEvents() {
-        Play.subscribe( () => {
-            if (this.segments.length) {
-                Narration.getPlayer().play();
-            }
-            this.paused = false;
-            // adjust startPlay by the elapsed pause. This will cause fakePageNarrationTimedOut to
-            // start a new timeout if we are depending on it to fake PageNarrationComplete.
-            const pause = (new Date().getTime() - this.startPause.getTime());
-            this.startPlay = new Date(this.startPlay.getTime() + pause);
-            //console.log("paused for " + pause + " and adjusted start time to " + this.startPlay);
-            if (this.fakeNarrationAborted) {
-                // we already paused through the timeout for normal advance.
-                // This call (now we are not paused and have adjusted startPlay)
-                // will typically start a new timeout. If we are very close to
-                // the desired duration it may just raise the event at once.
-                // Either way we should get the event raised exactly once
-                // at very close to the right time, allowing for pauses.
-                this.fakeNarrationAborted = false;
-                this.fakePageNarrationTimedOut(this.playerPage);
-            }
-        });
-        Pause.subscribe( () => {
-            if (this.segments.length) {
-                Narration.getPlayer().pause();
-            }
-            this.paused = true;
-            this.startPause = new Date();
-        });
+    public static play() {
+        if (this.segments.length) {
+            Narration.getPlayer().play();
+        }
+        this.paused = false;
+        // adjust startPlay by the elapsed pause. This will cause fakePageNarrationTimedOut to
+        // start a new timeout if we are depending on it to fake PageNarrationComplete.
+        const pause = (new Date().getTime() - this.startPause.getTime());
+        this.startPlay = new Date(this.startPlay.getTime() + pause);
+        //console.log("paused for " + pause + " and adjusted start time to " + this.startPlay);
+        if (this.fakeNarrationAborted) {
+            // we already paused through the timeout for normal advance.
+            // This call (now we are not paused and have adjusted startPlay)
+            // will typically start a new timeout. If we are very close to
+            // the desired duration it may just raise the event at once.
+            // Either way we should get the event raised exactly once
+            // at very close to the right time, allowing for pauses.
+            this.fakeNarrationAborted = false;
+            this.fakePageNarrationTimedOut(this.playerPage);
+        }
+    }
+
+    public static pause() {
+        if (this.segments.length) {
+            Narration.getPlayer().pause();
+        }
+        this.paused = true;
+        this.startPause = new Date();
     }
 
     public static playAllSentences(page: HTMLElement): void {
@@ -96,6 +103,11 @@ export default class Narration {
         // the pause duration from the beginning of this page.
         this.startPause = this.startPlay;
         if (this.segments.length === 0) {
+            if (this.androidMode) {
+                // android will handle delays; just tell it the page is done.
+                PageNarrationComplete.raise();
+                return;
+            }
             PageDuration = 3.0;
             PageDurationAvailable.raise(page);
             // Since there is nothing to play, we will never get an 'ended' event
@@ -110,6 +122,26 @@ export default class Narration {
         // trigger first duration evaluation. Each triggers another until we have them all.
         this.getNextSegment();
         //this.getDurationPlayer().setAttribute("src", this.currentAudioUrl(this.segments[0].getAttribute("id")));
+    }
+
+    public static playEnded(): void {
+        if (this.playingAll) {
+            const current: Element = this.playerPage.querySelector(".ui-audioCurrent");
+            const audioElts = this.getAudioElements();
+            const nextIndex = audioElts.indexOf(<HTMLElement> current) + 1;
+            if (nextIndex < audioElts.length) {
+                const next = audioElts[nextIndex];
+                this.setCurrentSpan(current, next);
+                this.setStatus("listen", Status.Active); // gets returned to enabled by setCurrentSpan
+                this.playCurrentInternal();
+                return;
+            }
+            this.playingAll = false;
+            PageNarrationComplete.raise(this.playerPage);
+            //this.changeStateAndSetExpected("listen");
+            return;
+        }
+        //this.changeStateAndSetExpected("next");
     }
 
     private static playerPage: HTMLElement;
@@ -256,28 +288,16 @@ export default class Narration {
     }
 
     private static playCurrentInternal() {
-        if (!IsPaused()) {
-            this.getPlayer().play();
-        }
-    }
-
-    private static playEnded(): void {
-        if (this.playingAll) {
-            const current: Element = this.playerPage.querySelector(".ui-audioCurrent");
-            const audioElts = this.getAudioElements();
-            const nextIndex = audioElts.indexOf(<HTMLElement> current) + 1;
-            if (nextIndex < audioElts.length) {
-                const next = audioElts[nextIndex];
-                this.setCurrentSpan(current, next);
-                this.setStatus("listen", Status.Active); // gets returned to enabled by setCurrentSpan
-                this.playCurrentInternal();
-                return;
+        if (!this.paused) {
+            if (this.androidMode) {
+                // Can't get using the player to work on Android, so we just use a callback to
+                // ask the Android to play it for us. It will call playEnded when appropriate.
+                // In this case the Android also handles all the pause/resume logic so the code
+                // here connected with play and resume is not used.
+                (<any> (<any> (window)).Android).playAudio(this.currentAudioUrl(this.idOfCurrentSentence));
+            } else {
+                this.getPlayer().play();
             }
-            this.playingAll = false;
-            PageNarrationComplete.raise(this.playerPage);
-            //this.changeStateAndSetExpected("listen");
-            return;
         }
-        //this.changeStateAndSetExpected("next");
     }
 }

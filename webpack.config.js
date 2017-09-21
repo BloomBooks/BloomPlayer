@@ -3,13 +3,40 @@ var merge = require('webpack-merge');
 var TARGET = process.env.npm_lifecycle_event;
 var webpack = require('webpack');
 
-var common_bits = {
+var common_player_bits = {
     context: __dirname,
     entry: './src/app.ts',
 
     output: {
         path: path.join(__dirname, "./output"),
         filename: "bloomPlayer.js"
+    },
+    resolve: {
+        root: ['.'],
+        modulesDirectories: [path.resolve(__dirname, 'node_modules')],
+        extensions: ['', '.js', '.ts', '.tsx']
+    },
+
+    module: {
+        preLoaders: [ { test: /\.ts$/, loader: "tslint" } ],
+        loaders: [
+           { test: /\.ts(x?)$/, loader: 'ts-loader' },
+           { test: /\.less$/, loaders: ['style-loader', 'css-loader', 'less-loader'] },
+           //{ test: /\.(svg|png)$/, loader: 'file',  include: path.join(__dirname, "./assets")}
+            { test: /\.(svg|png)$/, loader: 'url-loader',  include: path.join(__dirname, "./assets")}
+        ],
+    }
+};
+
+var common_page_player_bits = {
+    context: __dirname,
+    entry: './src/pagePlayer/app.ts',
+
+    output: {
+        path: path.join(__dirname, "./output"),
+        filename: "bloomPagePlayer.js",
+        libraryTarget: "var",
+        library: "Root"
     },
     resolve: {
         root: ['.'],
@@ -45,7 +72,7 @@ var production_bits = {
 
 //we get this if the build is run via "npm run build:prod"
 if (process.env.npm_lifecycle_event == "build:prod") {
-     module.exports = merge(common_bits, production_bits);
+     module.exports = [merge(common_player_bits, production_bits), merge(common_page_player_bits, production_bits)];
 } else {
-    module.exports = merge(common_bits, dev_bits);
+    module.exports = [merge(common_player_bits, dev_bits), merge(common_page_player_bits, dev_bits)];
 }

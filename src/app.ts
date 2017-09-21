@@ -1,13 +1,17 @@
 /// <reference path="../typings/index.d.ts" />
 
 import {SetupLayout, SetupLayoutEvents} from "./layout";
-import Animation from "./animation";
+import Animation from "./pagePlayer/animation";
 import {SetupMusic} from "./music";
-import {SetupNarration, SetupNarrationEvents, PageNarrationComplete} from "./narration";
+import {SetupNarrationEvents, PageNarrationComplete, PageDurationAvailable, PageDuration,
+    PlayNarration, PauseNarration, PlayAllSentences, ComputeDuration} from "./pagePlayer/narration";
 import Controls from "./controls";
 import Navigation, {GoNextPage} from "./navigation";
 import {Scale} from "./layout";
-import Multimedia from "./multimedia";
+import Multimedia from "./pagePlayer/multimedia";
+import {Play, Pause} from "./controls";
+import {PageVisible, PageBeforeVisible} from "./navigation";
+import FadePageChanger from "./fadePageChanger";
 
 let animation: Animation;
 let controls: Controls;
@@ -31,8 +35,25 @@ function attach() {
 
         SetupNarrationEvents();  // very early, defines events others subscribe to.
         animation = new Animation();
+        animation.SetFadePageTransitionMilliseconds(FadePageChanger.transitionMilliseconds);
+        PageVisible.subscribe(page => animation.HandlePageVisible(page));
+        PageBeforeVisible.subscribe(page => animation.HandlePageBeforeVisible(page));
+        PageDurationAvailable.subscribe(page => {
+            animation.HandlePageDurationAvailable(page, PageDuration); }
+    );
+        Play.subscribe(() =>  animation.PlayAnimation());
+        Pause.subscribe(() => animation.PauseAnimation());
+
         SetupMusic();
-        SetupNarration();
+        Play.subscribe(() => PlayNarration());
+        Pause.subscribe(() => PauseNarration());
+        PageVisible.subscribe(page => {
+            PlayAllSentences(page);
+        });
+        // Todo: stop playing when page hidden?
+        PageBeforeVisible.subscribe(page => {
+            ComputeDuration(page);
+        });
         SetupLayoutEvents();
         (<any> window).navigation.showFirstPage();
 

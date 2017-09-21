@@ -4,9 +4,9 @@ import * as ReactDOM from "react-dom";
 import Navigation from "./navigation";
 import "./controls.less";
 import {Mute} from "./music";
-import LiteEvent from "./event";
+import LiteEvent from "./pagePlayer/event";
 import Music from "./music";
-import Multimedia from "./multimedia";
+import Multimedia from "./pagePlayer/multimedia";
 
 export var Play: LiteEvent<void>;
 export var Pause: LiteEvent<void>;

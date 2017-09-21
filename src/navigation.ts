@@ -1,10 +1,10 @@
 import "./controls.less";
-import LiteEvent from "./event";
+import LiteEvent from "./pagePlayer/event";
 import CarouselPageChanger from "./CarouselPageChanger";
 import FadePageChanger from "./fadePageChanger";
 import {IPageChanger} from "./IPageChanger";
 import {IsLandscape} from "./layout";
-import Multimedia from "./multimedia";
+import Multimedia from "./pagePlayer/multimedia";
 
 export var PageVisible: LiteEvent<HTMLElement>;
 export var PageBeforeVisible: LiteEvent<HTMLElement>;

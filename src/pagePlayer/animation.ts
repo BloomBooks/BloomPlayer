@@ -1,8 +1,3 @@
-import {PageVisible, PageBeforeVisible, PageHidden} from "./navigation";
-import {PageDuration, PageDurationAvailable} from "./narration";
-import {Play, Pause /*, IsPaused*/} from "./controls";
-import FadePageChanger from "./fadePageChanger";
-
 // Defines the extra fields we expect to find in the dataset of an HTMLElement
 // that has animation specified (to make TypeScript and TSLint happy).
 interface IAnimation { initialrect: string;  finalrect: string; }
@@ -25,51 +20,55 @@ export default class Animation {
     // incremented for each animated div, to keep animation rules for each one distinct
     private ruleModifier: number = 0;
     private wrapperClassName = "bloom-ui-animationWrapper";
+    private animationDuration: number = 3000;
+    private fadePageTransitionMilliseconds: number = 100;
 
     constructor() {
-        PageVisible.subscribe(page => {
-            if (this.shouldAnimate(page)) {
-                this.pageVisible(page);
-            }
-        });
-        PageBeforeVisible.subscribe(page => {
-            if (this.shouldAnimate(page)) {
-                this.setupAnimation(page, true);
-            } else {
-                // may have left-over wrappers from when page previously played.
-                this.removeAnimationWrappers(page);
-            }
-        });
-        PageHidden.subscribe(page => {
-            // Anything to do here?
-        });
-        PageDurationAvailable.subscribe(page => {
-            if (this.shouldAnimate(page)) {
-                this.durationAvailable(page);
-            }
-        });
-
-        // It's harmless to insert and remove these rules when we are not animating,
-        // but disastrous if we insert one for a pause while animating, and don't remove
-        // it during a play while not animating. Best not to check for animation at all.
-        Play.subscribe( () =>  {
-            const stylesheet = this.getAnimationStylesheet().sheet;
-            (<CSSStyleSheet> stylesheet).removeRule((<CSSStyleSheet> stylesheet).cssRules.length - 1);
-            this.permanentRuleCount--;
-        });
-        Pause.subscribe( () => {
-            const stylesheet = this.getAnimationStylesheet().sheet;
-            (<CSSStyleSheet> stylesheet).insertRule(
-                ".bloom-animate {animation-play-state: paused; -webkit-animation-play-state: paused}",
-                (<CSSStyleSheet> stylesheet).cssRules.length);
-            this.permanentRuleCount++; // not really permanent, but not to be messed with.
-        });
-
         // 200 is designed to make sure this happens AFTER we adjust the scale.
         // Note that if we are not currently animating, this.currentPage may be null or
         // obsolete. It is only used if we need to turn OFF the animation.
         window.addEventListener("orientationchange", () => window.setTimeout(
             () => this.adjustWrapDiv(this.currentPage), 200));
+    }
+
+    public HandlePageBeforeVisible(page: HTMLElement) {
+        if (this.shouldAnimate(page)) {
+            this.setupAnimation(page, true);
+        } else {
+            // may have left-over wrappers from when page previously played.
+            this.removeAnimationWrappers(page);
+        }
+    }
+
+    public HandlePageVisible(page: HTMLElement) {
+        if (this.shouldAnimate(page)) {
+            this.pageVisible(page);
+        }
+    }
+
+    public HandlePageDurationAvailable(page: HTMLElement, duration: number) {
+        if (this.shouldAnimate(page)) {
+            this.animationDuration = duration;
+            this.durationAvailable(page);
+        }
+    }
+
+    public PlayAnimation() {
+        const stylesheet = this.getAnimationStylesheet().sheet;
+        (<CSSStyleSheet> stylesheet).removeRule((<CSSStyleSheet> stylesheet).cssRules.length - 1);
+        this.permanentRuleCount--;
+    }
+
+    public PauseAnimation() {
+        const stylesheet = this.getAnimationStylesheet().sheet;
+        (<CSSStyleSheet> stylesheet).insertRule(
+            ".bloom-animate {animation-play-state: paused; -webkit-animation-play-state: paused}",
+            (<CSSStyleSheet> stylesheet).cssRules.length);
+        this.permanentRuleCount++; // not really permanent, but not to be messed with.    
+    }
+
+    public SetFadePageTransitionMilliseconds(duration: number) {
+        this.fadePageTransitionMilliseconds = duration;
     }
 
     public setupAnimation(page: HTMLElement, beforeVisible: boolean): void {
@@ -263,7 +262,8 @@ export default class Animation {
                 + " { transform-origin: 0px 0px; transform: "
                 + initialTransform
                 + "; animation-name: " + movePicName + "; animation-duration: "
-                + (PageDuration + FadePageChanger.transitionMilliseconds / 1000) + "s; animation-fill-mode: forwards; "
+                + (this.animationDuration + this.fadePageTransitionMilliseconds / 1000)
+                + "s; animation-fill-mode: forwards; "
                 + "animation-timing-function: linear;}", 1);
             // Remove the rule we located earlier, if any. Index is increased because we inserted
             // the new rules before it.
