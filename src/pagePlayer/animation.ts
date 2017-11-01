@@ -22,6 +22,7 @@ export default class Animation {
     private wrapperClassName = "bloom-ui-animationWrapper";
     private animationDuration: number = 3000;
     private fadePageTransitionMilliseconds: number = 100;
+    private shouldAnimateInAllOrientations: boolean = false;
 
     constructor() {
         // 200 is designed to make sure this happens AFTER we adjust the scale.
@@ -53,6 +54,11 @@ export default class Animation {
         }
     }
 
+    public setShouldAnimateInAllOrientations() {
+        this.shouldAnimateInAllOrientations = true;
+    }
+
+    // Only applicable to resuming paused animation (by removing the pause CSS rule)
     public PlayAnimation() {
         const stylesheet = this.getAnimationStylesheet().sheet;
         (<CSSStyleSheet> stylesheet).removeRule((<CSSStyleSheet> stylesheet).cssRules.length - 1);
@@ -125,16 +131,18 @@ export default class Animation {
                 image.addEventListener("load", () => {
                     if (image.height) {  // some browsers may not produce this?
                         wrapDiv.setAttribute("data-aspectRatio", (image.width / image.height).toString());
-                        this.updateWrapDivSize(wrapDiv);
-                        this.insertAnimationRules(page, wrapDiv, animateStyleName, movePicName);
-                        const oldStyle = wrapDiv.getAttribute("style");
-                         // now we can show it.
-                        wrapDiv.setAttribute("style", oldStyle.substring("visibility: hidden; ".length));
                     } else {
                         // can't get accurate size for some reason, use fall-back.
                         wrapDiv.setAttribute("data-aspectRatio", (4 / 3).toString());
                     }
+                    this.updateWrapDivSize(wrapDiv);
+                    this.insertAnimationRules(page, wrapDiv, animateStyleName, movePicName, beforeVisible);
+                    const oldStyle = wrapDiv.getAttribute("style");
+                     // now we can show it.
+                    wrapDiv.setAttribute("style", oldStyle.substring("visibility: hidden; ".length));
                 });
+                // trigger loading the image (which is not used except for the code above that listens for
+                // it to be loaded).
                 image.src = imageSrc;
             } else {
                 // Enhance: if the original div had content (typically an <img>), 
@@ -146,7 +154,8 @@ export default class Animation {
             // Give this rule the class bloom-animate to trigger the rule created in getAnimationStylesheet,
             // and bloom-animationN to trigger the one we are about to create for page-specific animation.
             movingDiv.setAttribute("class", "bloom-animate " + animateStyleName);
-            // If the animation view had content (typically an img), move it to the inner div
+            // If the animation view had children (typically it has none, just shows a background image),
+            // move them to the inner div
             while (this.animationView.childNodes.length) {
                 movingDiv.appendChild(this.animationView.childNodes[0]);
             }
@@ -162,7 +171,7 @@ export default class Animation {
             // it might still be wrongly positioned if we changed orientation
             // since it was computed.
             this.updateWrapDivSize(wrapDiv);
-            this.insertAnimationRules(page, wrapDiv, animateStyleName, movePicName);
+            this.insertAnimationRules(page, wrapDiv, animateStyleName, movePicName, beforeVisible);
         }
         // if we ARE waiting for the wrap div aspect ratio, everything gets updated when we get it.
     }
@@ -187,10 +196,11 @@ export default class Animation {
     }
 
     // insert the rules that animate the image (or set its state during the page turn animation).
-    // We hope this happens before the image is visible, but we can't do it until we get the aspect
+    // We hope a call with beforeVisible false happens before the image is visible,
+    // but we can't do it until we get the aspect
     // ratio of the image and use it to compute the size of the wrapDiv.
     private insertAnimationRules(page: HTMLElement, wrapDiv: HTMLElement,
-                                 animateStyleName: string, movePicName: string) {
+                                 animateStyleName: string, movePicName: string, beforeVisible: boolean) {
         // Figure out the transforms needed to bring about the animation. These are relative to the size of the
         // wrapDiv which clips the animation, so we can't compute it until we set that size, which in turn
         // sometimes has to wait until we get the aspect ratio of the image.
@@ -227,13 +237,28 @@ export default class Animation {
             + ", 1.0) translate3d(-" + initialX + "px, -" + initialY + "px, 0px)";
         const finalTransform = "scale3d(" + finalScaleWidth + ", " + finalScaleHeight
             + ", 1.0) translate3d(-" + finalX + "px, -" + finalY + "px, 0px)";
-        if (page !== this.currentPage || page !== this.lastDurationPage) {
+        if (page !== this.currentPage || page !== this.lastDurationPage || beforeVisible) {
             // We aren't ready to start the animation, either because we haven't yet
             // been told the duration of this page, or we haven't yet been told to treat
             // it as visible.
+            // remove any previous rules (used-up ones from a previous animation of this page)
+            for (let i = 0; i < (<CSSStyleSheet> stylesheet).cssRules.length; i++) {
+                if ((<CSSStyleRule> (<CSSStyleSheet> stylesheet).cssRules[i]).selectorText ===
+                    "." + animateStyleName) {
+                        (<CSSStyleSheet> stylesheet).removeRule(i);
+                        break;
+                }
+            }
+            for (let i = 0; i < (<CSSStyleSheet> stylesheet).cssRules.length; i++) {
+                if ((<CSSStyleRule> (<CSSStyleSheet> stylesheet).cssRules[i]).selectorText ===
+                    "." + movePicName) {
+                        (<CSSStyleSheet> stylesheet).removeRule(i);
+                        break;
+                }
+            }
             // this rule puts it in the initial state for the animation, so we get a smooth
             // transition when the animation starts. Don't start THIS animation, though,
-            // until the page-turn one completes.
+            // until the page-turn one completes (or, for android, till we get the signal to start).
             (<CSSStyleSheet> stylesheet).insertRule("." + animateStyleName
                 + " { transform-origin: 0px 0px; transform: "
                 + initialTransform + ";}", 0);
@@ -394,6 +419,6 @@ export default class Animation {
     }
 
      private shouldAnimate(page: HTMLElement): boolean {
-        return page.classList.contains("Device16x9Landscape");
+        return this.shouldAnimateInAllOrientations || page.classList.contains("Device16x9Landscape");
     }
 }
