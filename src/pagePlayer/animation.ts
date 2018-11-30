@@ -8,13 +8,17 @@ export default class Animation {
         return !!Animation.getAnimationView(document.body);
     }
 
+    public static pageHasAnimation(page: HTMLDivElement): boolean {
+        return !!Animation.getAnimationView(page);
+    }
+
     public static getAnimationView(parent: HTMLElement): HTMLElement {
         return <HTMLElement> ([].slice.call(parent.getElementsByClassName("bloom-imageContainer"))
             .find(v => (<IAnimation> v.dataset).initialrect));
     }
 
-    private  currentPage: HTMLElement;
-    private  lastDurationPage: HTMLElement;
+    private currentPage: HTMLElement;
+    private lastDurationPage: HTMLElement;
     private animationView: HTMLElement;
     private permanentRuleCount: number; // rules from initial creation of stylesheet
     // incremented for each animated div, to keep animation rules for each one distinct
@@ -201,7 +205,7 @@ export default class Animation {
     // We cannot be absolutely sure whether the page transition or collecting the audio lengths will
     // take longer. So we listen for both events and start the animation when we have both have
     // occurred.
-    public  durationAvailable(page: HTMLElement) {
+    public durationAvailable(page: HTMLElement) {
         this.lastDurationPage = page;
         if (this.currentPage === this.lastDurationPage) {
             // already got the corresponding pageVisible event
@@ -392,7 +396,7 @@ export default class Animation {
         parent.removeChild(wrapDiv);
     }
 
-    private  addClass(elt: HTMLElement, className: string) {
+    private addClass(elt: HTMLElement, className: string) {
         const index = elt.className.indexOf(className);
         if (index < 0) {
             elt.className = elt.className + " " + className;
@@ -430,7 +434,7 @@ export default class Animation {
         return <HTMLStyleElement> animationElement;
     }
 
-     private shouldAnimate(page: HTMLElement): boolean {
+    private shouldAnimate(page: HTMLElement): boolean {
         if (this.animationControlledByApp) {
             return this.animationActive;
         }

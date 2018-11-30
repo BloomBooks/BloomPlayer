@@ -1,8 +1,10 @@
 /// <reference path="../../typings/index.d.ts" />
 
 import Animation from "./animation";
+import Multimedia from "./multimedia";
 import {ComputeDuration, PageDuration, PageDurationAvailable, PageNarrationComplete,
     PlayAllSentences, PlaybackCompleted, SetAndroidMode, SetupNarrationEvents} from "./narration";
+import VideoPlayer from "./videoPlayer";
 
 // This is the root file in webpack-config.js for generating bloomPagePlayer, a cut-down version
 // of BloomPlayer designed for use embedded in an app which uses its own controls for play, pause,
@@ -21,6 +23,8 @@ let initialized = false;
 // called before we get an animation object.
 let animationActive: boolean = true;
 
+// Every function below which starts with "export function" can be called by (Android) apps
+// by using 'mWebView.evaluateJavascript("Root.{function name}()", {callback or null})'
 export function startNarration() {
     startNarrationRequested = true;
 
@@ -59,7 +63,7 @@ export function handlePageBeforeVisible() {
     if (canInitialize) {
         if (initialized) {
             const page = <HTMLElement> (document.body.querySelector(".bloom-page"));
-            if (page) {
+            if (page && Animation.pageHasAnimation(<HTMLDivElement> page)) {
                 animation.HandlePageBeforeVisible(page);
             }
         } else {
@@ -67,6 +71,39 @@ export function handlePageBeforeVisible() {
         }
     }
     // otherwise, we were called before doc loaded; when it is we will proceed.
+}
+
+// Tells app (Android or other) whether the current page has multimedia or not.
+export function requestPageMultimediaState(): string {
+    if (canInitialize) {
+        if (initialized) {
+            return getPageMultimediaState();
+        } else {
+            initialize();
+            return getPageMultimediaState();
+        }
+    }
+    // don't think this can happen, but if we were called before doc loaded, we'll just get "false"
+    return "false";
+}
+
+function getPageMultimediaState(): string {
+    const page = <HTMLElement> (document.body.querySelector(".bloom-page"));
+    return (page && Multimedia.pageHasMultimedia(<HTMLDivElement> page)) ? "true" : "false";
+}
+
+export function pauseVideo() {
+    const page = <HTMLDivElement> (document.body.querySelector(".bloom-page"));
+    if (VideoPlayer.pageHasVideo(page)) {
+        VideoPlayer.pauseVideo(page);
+    }
+}
+
+export function playVideo() {
+    const page = <HTMLDivElement> (document.body.querySelector(".bloom-page"));
+    if (VideoPlayer.pageHasVideo(page)) {
+        VideoPlayer.playVideo(page);
+    }
 }
 
 // Called by android code when android sound play completed

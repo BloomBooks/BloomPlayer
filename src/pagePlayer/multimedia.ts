@@ -8,4 +8,10 @@ export default class Multimedia {
             Animation.documentHasAnimation() ||
             VideoPlayer.documentHasVideo();
     }
+
+    public static pageHasMultimedia(page: HTMLDivElement): boolean {
+        return Narration.pageHasNarration(page) ||
+            Animation.pageHasAnimation(page) ||
+            VideoPlayer.pageHasVideo(page);
+    }
 }

@@ -50,6 +50,10 @@ export default class Narration {
         return !!document.getElementsByClassName("audio-sentence").length;
     }
 
+    public static pageHasNarration(page: HTMLDivElement): boolean {
+        return !!page.getElementsByClassName("audio-sentence").length;
+    }
+
     public static play() {
         if (this.segments.length) {
             Narration.getPlayer().play();
