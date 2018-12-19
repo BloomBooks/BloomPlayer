@@ -7,7 +7,7 @@ import {SetupMusic} from "./music";
 import Navigation, {GoNextPage, PageBeforeVisible, PageVisible} from "./navigation";
 import Animation from "./pagePlayer/animation";
 import Multimedia from "./pagePlayer/multimedia";
-import {ComputeDuration, PageDuration, PageDurationAvailable, PageNarrationComplete, PauseNarration,
+import Narration, {ComputeDuration, PageDuration, PageDurationAvailable, PageNarrationComplete, PauseNarration,
     PlayAllSentences, PlayNarration, SetupNarrationEvents} from "./pagePlayer/narration";
 
 let animation: Animation;
@@ -40,6 +40,7 @@ function attach() {
         );
         Play.subscribe(() =>  animation.PlayAnimation());
         Pause.subscribe(() => animation.PauseAnimation());
+        Narration.Pause = Pause;
 
         SetupMusic();
         Play.subscribe(() => PlayNarration());

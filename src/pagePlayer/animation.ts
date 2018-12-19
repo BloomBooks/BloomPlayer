@@ -30,6 +30,7 @@ export default class Animation {
     // Controlled by setAnimationActive(), this determines whether to animate
     // pan/zoom when animationControlledByApp is true.
     private animationActive: boolean = true;
+    private pageJustMadeVisible: HTMLElement;
 
     constructor() {
         // 200 is designed to make sure this happens AFTER we adjust the scale.
@@ -103,6 +104,9 @@ export default class Animation {
     }
 
     public setupAnimation(page: HTMLElement, beforeVisible: boolean): void {
+        if (!beforeVisible) {
+            this.pageJustMadeVisible = page;
+        }
         this.animationView = Animation.getAnimationView(page);
         if (!this.animationView) {return; } // no image to animate
 
@@ -160,7 +164,11 @@ export default class Animation {
                         wrapDiv.setAttribute("data-aspectRatio", (16 / 9).toString());
                     }
                     this.updateWrapDivSize(wrapDiv);
-                    this.insertAnimationRules(page, wrapDiv, beforeVisible);
+                    // There's a possible race condition between calling this method again
+                    // with the page visible, and loading the image.
+                    // If we have already made this page visible, we need to call this
+                    // with beforeVisible false.
+                    this.insertAnimationRules(page, wrapDiv, beforeVisible && page !== this.pageJustMadeVisible);
                     const oldStyle = wrapDiv.getAttribute("style");
                      // now we can show it.
                     wrapDiv.setAttribute("style", oldStyle.substring("visibility: hidden; ".length));
@@ -311,6 +319,10 @@ export default class Animation {
         movingDiv.setAttribute("class", "bloom-animate bloom-pausable " + animateStyleName);
     }
 
+    // Enhance: some of the calculations here may require adjustment if we ever do
+    // animation while scaled. Currently we use a different system to make the
+    // image container fill the viewport when animating, and suppress scaling.
+    // So we can ignore that factor.
     private updateWrapDivSize(wrapDiv: HTMLElement) {
         const imageAspectRatio = parseFloat(wrapDiv.getAttribute("data-aspectRatio"));
         const viewWidth = this.animationView.clientWidth; // getBoundingClientRect().width;

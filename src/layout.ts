@@ -28,6 +28,19 @@ export function SetupLayoutEvents() {
 }
 
 export function Scale(): number {
+    var fullScreenAttr = document.body.getAttribute("data-bffullscreenpicture");
+    if (IsLandscape() &&
+        (fullScreenAttr.indexOf("landscape") >= 0 
+        || fullScreenAttr.indexOf("allOrientations") >= 0)) {
+        // doing motion animation. Image container will be zoomed to fill window.
+        // if we also scale it, results are weird.
+        // Note: the conditions in the CSS for full-screen-picture to actually apply
+        // are much more complex. BloomPlayer is about to be replaced with a fully
+        // React component, so I'm not inclined to try to replicate them all.
+        // Even if we wanted to, it's not clear whether BloomPlayer should have its
+        // own media setting or borrow the bloomReader one.
+        return 1;
+    }
     //Enhance: would using meta.viewport be better?
     //http://stackoverflow.com/questions/8735457/scale-fit-mobile-web-content-using-viewport-meta-tag?rq=1
 
