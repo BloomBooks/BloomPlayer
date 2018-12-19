@@ -29,6 +29,14 @@ export default class Controls {
         Play = new LiteEvent<void>();
         Pause = new LiteEvent<void>();
 
+        // Usually our own code raises this event.
+        // But can be paused when play() fails.
+        Pause.subscribe(() => {
+            paused = true;
+            var btn = document.getElementById("playAndPauseButton");
+            btn.classList.add("paused");
+        });
+
         document.body.insertAdjacentHTML("afterbegin", "<div id='control-root'></div>");
         const controlRoot: HTMLElement = document.getElementById("control-root");
         controlRoot.addEventListener("touchstart", (event) => {
