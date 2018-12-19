@@ -90,3 +90,54 @@ body{
         }
     }
 }
+
+// This is a really ugly hack.
+// A typical book (currently...and even if we fix it, old books may have this)
+// has a style rule in bloomFeatures.less which says that when the feature combinations
+// for fullscreenpicture are met, a bloom-imageContainer should be position:fixed, width:100%
+// at the top left. It says nothing about height. But we need to increase its height, too.
+// Then there is a rule in device.less which says that an image container should have
+// height: calc(100%) !important; if it is in a marginbox inside Device16x9Landscape,
+// Device16x9Portrait, or PictureStoryLandscape. I think those outer conditions are always
+// true in a device layout, so basically on a device the height of an image container is always 100%.
+// The calc() seems to be historical.
+// All the doc I can find says that in a position:fixed element, percent heights are relative
+// to the viewport; so this rule ought to make the image container fill the window.
+// It doesn't, at least in Chrome or FireFox; instead, it seems to produce 100% of the page height,
+// usually OK on a device, but seldom in a desktop window.
+// Until someone comes up with a better idea, this rule sets a height of 100vw, which really does make
+// the bloom-imageContainer fill the height of the window, and reluctantly uses !important to beat
+// the 100% rule.
+// This mixin is taken from Bloom's features.less and allows us to make a rule similar to the
+// one that sets the width for fullscreenpicture.
+.bookFeature(@featureName, @rules) {
+    @dataFeature: ~"data-bf@{featureName}";
+
+    body {
+        //
+        // MATCHING MEDIA CONSTRAINT
+        //
+        &[@{dataFeature}*="allMedia"],
+        &[@{dataFeature}*="print"][data-media*="print"],
+        &[@{dataFeature}*="bloomReader"][data-media*="bloomReader"],
+        &[@{dataFeature}*="epub"][data-media*="epub"],
+        &[@{dataFeature}*="video"][data-media*="video"] {
+            //
+            // MATCHING ORIENTATION CONSTRAINT
+            //
+            &[@{dataFeature}*="allOrientations"],
+            &[@{dataFeature}*="landscape"] .bloom-page[class*="Landscape"],
+            &[@{dataFeature}*="portrait"] .bloom-page[class*="Portrait"] {
+                @rules();
+            }
+        }
+    }
+}
+
+// prettier-ignore
+.bookFeature("fullscreenpicture",{
+
+    .bloom-imageContainer {
+        height: 100vh !important;
+    }
+});
