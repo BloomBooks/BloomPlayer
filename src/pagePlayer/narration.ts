@@ -47,6 +47,7 @@ enum Status {
 
 export default class Narration {
     public static androidMode: boolean = false;
+    public static Pause: LiteEvent<void>;
 
     public static documentHasNarration(): boolean {
         return !!this.getDocumentAudioElements().length;
@@ -351,7 +352,12 @@ export default class Narration {
                 // here connected with play and resume is not used.
                 (<any> (<any> (window)).Android).playAudio(this.currentAudioUrl(this.idOfCurrentSentence));
             } else {
-                this.getPlayer().play();
+                (<any> this.getPlayer().play()).catch(reason => {
+                    console.log("could not play sound: " + reason);
+                    if (this.Pause) {
+                        this.Pause.raise();
+                    }
+                });
             }
         }
     }
