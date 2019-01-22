@@ -254,12 +254,14 @@ export default class Narration {
         return allMatches;
     }
 
-    private static getRecordableDivs(container: HTMLElement) {
-        return this.findAll("div.bloom-editable.bloom-content1", container);
+    private static getPlayableDivs(container: HTMLElement) {
+        // We want to play any audio we have from divs the user can see.
+        // This is a crude test, but currently we always use display:none to hide unwanted languages.
+        return this.findAll("div.bloom-editable", container).filter(e => window.getComputedStyle(e).display !== "none");
     }
 
     private static getDocRecordableDivs(): HTMLElement[] {
-        return this.getRecordableDivs(document.body);
+        return this.getPlayableDivs(document.body);
     }
 
     private static getDocumentAudioElements(): HTMLElement[] {
@@ -269,7 +271,7 @@ export default class Narration {
     // Optional param is for use when 'playerPage' has NOT been initialized.
     // Not using the optional param assumes 'playerPage' has been initialized
     private static getPageRecordableDivs(page?: HTMLElement): HTMLElement[] {
-        return this.getRecordableDivs(page ? page : this.playerPage);
+        return this.getPlayableDivs(page ? page : this.playerPage);
     }
 
     // Optional param is for use when 'playerPage' has NOT been initialized.
