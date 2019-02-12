@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build:prod": "webpack",
+    "build:dev": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "SIL International",
