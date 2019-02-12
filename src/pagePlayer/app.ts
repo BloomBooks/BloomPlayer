@@ -139,3 +139,34 @@ function setCanInitialize() {
 }
 
 document.addEventListener("DOMContentLoaded", setCanInitialize, false);
+
+// polyfills for Android 4.4 support
+if (!Element.prototype.matches) {
+  Element.prototype.matches = Element.prototype.webkitMatchesSelector;
+}
+
+// See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find#Polyfill
+// and https://tc39.github.io/ecma262/#sec-array.prototype.find
+// But this implementation comes from https://stackoverflow.com/a/31457683/7442826
+if (!Array.prototype.find) {
+  Array.prototype.find = function(predicate) {
+    if (this == null) {
+      throw new TypeError("Array.prototype.find called on null or undefined");
+    }
+    if (typeof predicate !== "function") {
+      throw new TypeError("predicate must be a function");
+    }
+    const list = Object(this);
+    const length = list.length >>> 0;
+    const thisArg = arguments[1];
+    let value;
+
+    for (let i = 0; i < length; i++) {
+      value = list[i];
+      if (predicate.call(thisArg, value, i, list)) {
+        return value;
+      }
+    }
+    return undefined;
+  };
+}
