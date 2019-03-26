@@ -1,5 +1,8 @@
 export default class VideoPlayer {
 
+    // Flag to query whether we are actively playing a video.
+    public static videoIsPlaying: boolean = false;
+
     // If the document only has containers for video, but no actual videos, return false.
     public static documentHasVideo(): boolean {
         return !!(document.getElementsByTagName("video").length);
@@ -19,6 +22,7 @@ export default class VideoPlayer {
             }
             currentElement.pause();
         }
+        VideoPlayer.videoIsPlaying = false;
     }
 
     // Plays the video on the page specified by the index or the first one on the page
@@ -26,6 +30,9 @@ export default class VideoPlayer {
     public static playVideo(page: HTMLDivElement, index = 0): void {
         const videoElements = page.getElementsByTagName("video");
         if (videoElements.length > index && videoElements[index].paused) {
+            videoElements[index].onended = null;
+            videoElements[index].onended = (ev: Event) => { VideoPlayer.videoIsPlaying = false; };
+            VideoPlayer.videoIsPlaying = true;
             videoElements[index].play();
         }
     }
