@@ -110,6 +110,16 @@ export function playVideo() {
     }
 }
 
+// Tells app (Android or other) whether the current page is playing a video.
+// The return value is a string instead of boolean because the callback function
+// for evaluateJavascript() is of type ValueCallback<string>.
+export function isVideoPlaying(): string {
+    if (page && VideoPlayer.pageHasVideo(page) && VideoPlayer.isVideoPlaying()) {
+        return "true";
+    }
+    return "false";
+}
+
 // Called by android code when android sound play completed
 export function playbackCompleted() {
     PlaybackCompleted();
