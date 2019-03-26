@@ -9,15 +9,18 @@ export default class VideoPlayer {
         return !!(page.getElementsByTagName("video").length);
     }
 
-    // Pauses all video on a page
-    public static pauseVideo(page: HTMLDivElement): void {
+    // Pauses all video on a page.  Resets the videos to the beginning if the reset
+    // flag is true.
+    public static pauseVideo(page: HTMLDivElement, reset: boolean = false): void {
         const videoElements = page.getElementsByTagName("video");
         for (let i = 0; i < videoElements.length; i++) {
             const currentElement = videoElements[i];
-            if (currentElement.paused) {
-                continue;
+            if (!currentElement.paused) {
+                currentElement.pause();
             }
-            currentElement.pause();
+            if (reset) {
+                currentElement.currentTime = 0.0;
+            }
         }
     }
 

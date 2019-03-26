@@ -98,6 +98,12 @@ export function pauseVideo() {
     }
 }
 
+export function stopVideo() {
+    if (page && VideoPlayer.pageHasVideo(page)) {
+        VideoPlayer.pauseVideo(page, true);
+    }
+}
+
 export function playVideo() {
     if (page && VideoPlayer.pageHasVideo(page)) {
         VideoPlayer.playVideo(page);
