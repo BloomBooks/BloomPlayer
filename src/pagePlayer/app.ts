@@ -2,6 +2,7 @@
 
 import Animation from "./animation";
 import Multimedia from "./multimedia";
+import Narration from "./narration";
 import {ComputeDuration, PageDuration, PageDurationAvailable, PageNarrationComplete,
     PlayAllSentences, PlaybackCompleted, SetAndroidMode, SetupNarrationEvents} from "./narration";
 import VideoPlayer from "./videoPlayer";
@@ -110,14 +111,26 @@ export function playVideo() {
     }
 }
 
-// Tells app (Android or other) whether the current page is playing a video.
-// The return value is a string instead of boolean because the callback function
-// for evaluateJavascript() is of type ValueCallback<string>.
-export function isVideoPlaying(): string {
-    if (page && VideoPlayer.pageHasVideo(page) && VideoPlayer.isVideoPlaying()) {
-        return "true";
+// Tells app (Android or other) whether the current page has various forms of multimedia,
+// and details about animation and video if those exist.
+export function getMultiMediaStatus(): string {
+    let status = {};
+    /* tslint:disable:no-string-literal */
+    if (page) {
+        status["hasNarration"] = Narration.pageHasNarration(page);
+        status["hasAnimation"] = Animation.pageHasAnimation(page);
+        status["pageDuration"] = PageDuration;
+        status["hasVideo"] = VideoPlayer.pageHasVideo(page);
+        status["videoIsPlaying"] = status["hasVideo"] && VideoPlayer.isVideoPlaying();
+    } else {
+        status["hasNarration"] = false;
+        status["hasAnimation"] = false;
+        status["pageDuration"] = 0.0;
+        status["hasVideo"] = false;
+        status["videoIsPlaying"] = false;
     }
-    return "false";
+    /* tslint:enable */
+    return JSON.stringify(status);
 }
 
 // Called by android code when android sound play completed
