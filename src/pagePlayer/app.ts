@@ -3,8 +3,16 @@
 import Animation from "./animation";
 import Multimedia from "./multimedia";
 import Narration from "./narration";
-import {ComputeDuration, PageDuration, PageDurationAvailable, PageNarrationComplete,
-    PlayAllSentences, PlaybackCompleted, SetAndroidMode, SetupNarrationEvents} from "./narration";
+import {
+  ComputeDuration,
+  PageDuration,
+  PageDurationAvailable,
+  PageNarrationComplete,
+  PlayAllSentences,
+  PlaybackCompleted,
+  SetAndroidMode,
+  SetupNarrationEvents
+} from "./narration";
 import VideoPlayer from "./videoPlayer";
 
 // This is the root file in webpack-config.js for generating bloomPagePlayer, a cut-down version
@@ -30,174 +38,183 @@ let page: HTMLDivElement;
 // Every function below which starts with "export function" can be called by (Android) apps
 // by using 'mWebView.evaluateJavascript("Root.{function name}()", {callback or null})'
 export function startNarration() {
-    startNarrationRequested = true;
+  startNarrationRequested = true;
 
-    if (canInitialize ) {
-        if (initialized) {
-            // typical, we already initialized most stuff in the process of doing handlePageBeforeVisible()
-            if (page) {
-                    PlayAllSentences(page);
-                    // This may or may not cause the animation to start, depending on
-                    // what was last passed to enableAnimation().
-                    animation.HandlePageVisible(page);
-            }
-        } else {
-            // Somehow startNarration was called before handlePageBeforeVisible().
-            // Not sure this can happen, but if it does, we need to set everything up.
-            initialize();
-        }
+  if (canInitialize) {
+    if (initialized) {
+      // typical, we already initialized most stuff in the process of doing handlePageBeforeVisible()
+      if (page) {
+        PlayAllSentences(page);
+        // This may or may not cause the animation to start, depending on
+        // what was last passed to enableAnimation().
+        animation.HandlePageVisible(page);
+      }
+    } else {
+      // Somehow startNarration was called before handlePageBeforeVisible().
+      // Not sure this can happen, but if it does, we need to set everything up.
+      initialize();
     }
-    // otherwise, we were called before doc loaded; when it is we will proceed.
+  }
+  // otherwise, we were called before doc loaded; when it is we will proceed.
 }
 
 export function enableAnimation(doAnimate: boolean) {
-    // In case this is called before we initialize() and have an animation object,
-    // we need to remember the value. If we already have the animation object,
-    // update it.
-    animationActive = doAnimate;
-    if (animation) {
-        animation.setAnimationActive(doAnimate);
-    }
+  // In case this is called before we initialize() and have an animation object,
+  // we need to remember the value. If we already have the animation object,
+  // update it.
+  animationActive = doAnimate;
+  if (animation) {
+    animation.setAnimationActive(doAnimate);
+  }
 }
 
 export function handlePageBeforeVisible() {
-    beforeVisibleInitRequested = true;
+  beforeVisibleInitRequested = true;
 
-    if (canInitialize) {
-        if (initialized) {
-            if (page && Animation.pageHasAnimation(page)) {
-                animation.HandlePageBeforeVisible(page);
-            }
-        } else {
-            initialize();
-        }
+  if (canInitialize) {
+    if (initialized) {
+      if (page && Animation.pageHasAnimation(page)) {
+        animation.HandlePageBeforeVisible(page);
+      }
+    } else {
+      initialize();
     }
-    // otherwise, we were called before doc loaded; when it is we will proceed.
+  }
+  // otherwise, we were called before doc loaded; when it is we will proceed.
 }
 
 // Tells app (Android or other) whether the current page has multimedia or not.
 // The return value is a string instead of boolean because the callback function
 // for evaluateJavascript() is of type ValueCallback<string>.
 export function requestPageMultimediaState(): string {
-    if (canInitialize) {
-        if (!initialized) {
-            initialize();
-        }
-        return hasMultimedia().toString();
+  if (canInitialize) {
+    if (!initialized) {
+      initialize();
     }
-    // don't think this can happen, but if we were called before doc loaded, we'll just get "false"
-    return "false";
+    return hasMultimedia().toString();
+  }
+  // don't think this can happen, but if we were called before doc loaded, we'll just get "false"
+  return "false";
 }
 
 function hasMultimedia(): boolean {
-    return (page && Multimedia.pageHasMultimedia(page));
+  return page && Multimedia.pageHasMultimedia(page);
 }
 
 export function pauseVideo() {
-    if (page && VideoPlayer.pageHasVideo(page)) {
-        VideoPlayer.pauseVideo(page);
-    }
+  if (page && VideoPlayer.pageHasVideo(page)) {
+    VideoPlayer.pauseVideo(page);
+  }
 }
 
 export function stopVideo() {
-    if (page && VideoPlayer.pageHasVideo(page)) {
-        VideoPlayer.pauseVideo(page, true);
-    }
+  if (page && VideoPlayer.pageHasVideo(page)) {
+    VideoPlayer.pauseVideo(page, true);
+  }
 }
 
 export function playVideo() {
-    if (page && VideoPlayer.pageHasVideo(page)) {
-        VideoPlayer.playVideo(page);
-    }
+  if (page && VideoPlayer.pageHasVideo(page)) {
+    VideoPlayer.playVideo(page);
+  }
+}
+
+export function totalVideoLength(): string {
+  if (page && VideoPlayer.pageHasVideo(page)) {
+    return VideoPlayer.totalVideoLength(page);
+  }
+  return "0";
 }
 
 // Tells app (Android or other) whether the current page has various forms of multimedia,
 // and details about animation and video if those exist.
 export function getMultiMediaStatus(): string {
-    const status = page ? {
+  const status = page
+    ? {
         hasAnimation: Animation.pageHasAnimation(page),
         hasNarration: Narration.pageHasNarration(page),
         hasVideo: VideoPlayer.pageHasVideo(page),
         pageDuration: PageDuration,
-        videoIsPlaying: VideoPlayer.isVideoPlaying(),
-    } : {
+        videoIsPlaying: VideoPlayer.isVideoPlaying()
+      }
+    : {
         hasAnimation: false,
         hasNarration: false,
         hasVideo: false,
         pageDuration: 0.0,
-        videoIsPlaying: false,
-    };
-    return JSON.stringify(status);
+        videoIsPlaying: false
+      };
+  return JSON.stringify(status);
 }
 
 // Called by android code when android sound play completed
 export function playbackCompleted() {
-    PlaybackCompleted();
+  PlaybackCompleted();
 }
 
 export function pauseAnimation() {
-    animation.PauseAnimation();
+  animation.PauseAnimation();
 }
 
 export function resumeAnimation() {
-    animation.PlayAnimation();
+  animation.PlayAnimation();
 }
 
 function initialize() {
-    initialized = true;
-    SetupNarrationEvents();  // very early, defines events others subscribe to.
-    SetAndroidMode();
-    animation = new Animation();
-    // BloomReader (based on properties in the book file) controls whether
-    // animations happen in all orientations or only some. We need to configure
-    // the animation object to respect this, and set the current state.
-    animation.setAnimationControlledByApp(true);
-    animation.setAnimationActive(animationActive);
+  initialized = true;
+  SetupNarrationEvents(); // very early, defines events others subscribe to.
+  SetAndroidMode();
+  animation = new Animation();
+  // BloomReader (based on properties in the book file) controls whether
+  // animations happen in all orientations or only some. We need to configure
+  // the animation object to respect this, and set the current state.
+  animation.setAnimationControlledByApp(true);
+  animation.setAnimationActive(animationActive);
 
-    PageDurationAvailable.subscribe(pageElement => {
-        animation.HandlePageDurationAvailable(pageElement, PageDuration); }
-    );
+  PageDurationAvailable.subscribe(pageElement => {
+    animation.HandlePageDurationAvailable(pageElement, PageDuration);
+  });
 
-    // Subscribe even if this page has no audio, since ComputeDuration will (currently) trigger page
-    // completed at once in that case.
-    // (Besides, quite likely even if this page has no audio, if the document as a whole has narration,
-    // its title very well may have it, and that will be in the data div which is common to all pages,
-    // so we will find an audio-sentence in the doc.)
-    PageNarrationComplete.subscribe(() => {
-        (<any> (<any> (window)).Android).pageCompleted();
-    });
-    page = <HTMLDivElement> document.body.querySelector(".bloom-page");
-    if (page) {
-        ComputeDuration(page); // needed later for animation, though we don't need the result right here.
-        // if startNarration has been called (typically, initialize is being called from doc loaded event),
-        // we need to get it started now.
-        if (startNarrationRequested) {
-            PlayAllSentences(page);
-        }
-    }
-    // starting narration implies starting the animation, if any. So if that was already
-    // requested (see above), start it too.
+  // Subscribe even if this page has no audio, since ComputeDuration will (currently) trigger page
+  // completed at once in that case.
+  // (Besides, quite likely even if this page has no audio, if the document as a whole has narration,
+  // its title very well may have it, and that will be in the data div which is common to all pages,
+  // so we will find an audio-sentence in the doc.)
+  PageNarrationComplete.subscribe(() => {
+    (<any>(<any>window).Android).pageCompleted();
+  });
+  page = <HTMLDivElement>document.body.querySelector(".bloom-page");
+  if (page) {
+    ComputeDuration(page); // needed later for animation, though we don't need the result right here.
+    // if startNarration has been called (typically, initialize is being called from doc loaded event),
+    // we need to get it started now.
     if (startNarrationRequested) {
-        animation.HandlePageVisible(page);
-    } else {
-        // We hope this happens during or very soon after handlePageBeforeVisible() is called,
-        // so that even before the page is fully shown and animation begins, we can get the right
-        // fragment of the picture showing for the initial state.
-        animation.HandlePageBeforeVisible(page);
+      PlayAllSentences(page);
     }
+  }
+  // starting narration implies starting the animation, if any. So if that was already
+  // requested (see above), start it too.
+  if (startNarrationRequested) {
+    animation.HandlePageVisible(page);
+  } else {
+    // We hope this happens during or very soon after handlePageBeforeVisible() is called,
+    // so that even before the page is fully shown and animation begins, we can get the right
+    // fragment of the picture showing for the initial state.
+    animation.HandlePageBeforeVisible(page);
+  }
 }
 
 function setCanInitialize() {
-    canInitialize = true;
-    if (startNarrationRequested || beforeVisibleInitRequested) {
-        initialize();
-    }
-    // This handshake allows the Java to know not only that the page is loaded, but that the
-    // Javascript itself is loaded. I think there's some redundancy here...startNarration()
-    // and handlePageBeforeVisible() are not called until the Android gets this notification,
-    // so we probably don't need the code above that deals with getting them before the doc
-    // is ready. But with async stuff happening, I'd rather have things as robust as possible.
-    (<any> (<any> (window)).Android).domContentLoaded();
+  canInitialize = true;
+  if (startNarrationRequested || beforeVisibleInitRequested) {
+    initialize();
+  }
+  // This handshake allows the Java to know not only that the page is loaded, but that the
+  // Javascript itself is loaded. I think there's some redundancy here...startNarration()
+  // and handlePageBeforeVisible() are not called until the Android gets this notification,
+  // so we probably don't need the code above that deals with getting them before the doc
+  // is ready. But with async stuff happening, I'd rather have things as robust as possible.
+  (<any>(<any>window).Android).domContentLoaded();
 }
 
 document.addEventListener("DOMContentLoaded", setCanInitialize, false);
