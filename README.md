@@ -1,4 +1,6 @@
-# BloomPlayer
+# LegacyBloomPlayer
+
+We are trying to retire this repo, which has been replaced by bloom-player. The single-page javascript is still used by the current version of BloomReader (1.X), which we are also trying to retire. Please don't use it for any new Bloom projects!
 
 Navigate **Bloom** books while basking in sound and motion
 
